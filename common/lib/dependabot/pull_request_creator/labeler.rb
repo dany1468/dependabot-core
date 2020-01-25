@@ -225,6 +225,7 @@ module Dependabot
           when "github" then fetch_github_labels
           when "gitlab" then fetch_gitlab_labels
           when "azure" then fetch_azure_labels
+          when "gitea" then fetch_gitea_labels
           else raise "Unsupported provider #{source.provider}"
           end
       end
@@ -246,6 +247,12 @@ module Dependabot
         end
 
         labels
+      end
+
+      def fetch_gitea_labels
+        gitea_client_for_source.
+          labels(source.repo).
+          map(&:name)
       end
 
       def fetch_gitlab_labels
@@ -376,6 +383,14 @@ module Dependabot
       def gitlab_client_for_source
         @gitlab_client_for_source ||=
           Dependabot::Clients::GitlabWithRetries.for_source(
+            source: source,
+            credentials: credentials
+          )
+      end
+
+      def gitea_client_for_source
+        @gitea_client_for_source ||=
+          Dependabot::Clients::Gitea.for_source(
             source: source,
             credentials: credentials
           )

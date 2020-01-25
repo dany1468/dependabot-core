@@ -78,7 +78,7 @@ module Dependabot
       return url if [nil, ".", "/"].include?(directory)
 
       case provider
-      when "github", "gitlab"
+      when "github", "gitlab", "gitea"
         path = Pathname.new(File.join("tree/#{branch || 'HEAD'}", directory)).
                cleanpath.to_path
         url + "/" + path
@@ -119,6 +119,7 @@ module Dependabot
       when "bitbucket" then "bitbucket.org"
       when "gitlab" then "gitlab.com"
       when "azure" then "dev.azure.com"
+      when "gitea" then "localhost:3000"
       when "codecommit" then "us-east-1"
       else raise "Unexpected provider '#{provider}'"
       end
@@ -130,6 +131,7 @@ module Dependabot
       when "bitbucket" then "https://api.bitbucket.org/2.0/"
       when "gitlab" then "https://gitlab.com/api/v4"
       when "azure" then "https://dev.azure.com/"
+      when "gitea" then "http://localhost:3000/"
       when "codecommit" then nil
       else raise "Unexpected provider '#{provider}'"
       end

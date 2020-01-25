@@ -4,6 +4,7 @@ require "dependabot/dependency_file"
 require "dependabot/source"
 require "dependabot/errors"
 require "dependabot/clients/azure"
+require "dependabot/clients/gitea"
 require "dependabot/clients/codecommit"
 require "dependabot/clients/github_with_retries"
 require "dependabot/clients/bitbucket_with_retries"
@@ -157,6 +158,8 @@ module Dependabot
           _azure_repo_contents(path, commit)
         when "bitbucket"
           _bitbucket_repo_contents(repo, path, commit)
+        when "gitea"
+          _gitea_repo_contents(repo, path, commit)
         when "codecommit"
           _codecommit_repo_contents(repo, path, commit)
         else raise "Unsupported provider '#{provider}'."
@@ -206,6 +209,19 @@ module Dependabot
           sha: file.sha,
           size: file.size
         )
+      end
+
+      def _gitea_repo_contents(repo, path, commit)
+        response = gitea_client.fetch_repo_contents(commit, path)
+
+        response.map do |file|
+          OpenStruct.new(
+            name: file.fetch('name'),
+            path: file.fetch('path'),
+            type: file.fetch('type'),
+            size: file.fetch('size')
+          )
+        end
       end
 
       def _gitlab_repo_contents(repo, path, commit)
@@ -342,6 +358,9 @@ module Dependabot
           Base64.decode64(tmp).force_encoding("UTF-8").encode
         when "azure"
           azure_client.fetch_file_contents(commit, path)
+        when "gitea"
+          tmp = gitea_client.fetch_repo_contents(commit, path)
+          Base64.decode64(tmp.fetch('content')).force_encoding("UTF-8").encode
         when "bitbucket"
           bitbucket_client.fetch_file_contents(repo, commit, path)
         when "codecommit"
@@ -424,6 +443,7 @@ module Dependabot
         when "github" then github_client
         when "gitlab" then gitlab_client
         when "azure" then azure_client
+        when "gitea" then gitea_client
         when "bitbucket" then bitbucket_client
         when "codecommit" then codecommit_client
         else raise "Unsupported provider '#{source.provider}'."
@@ -450,6 +470,11 @@ module Dependabot
         @azure_client ||=
           Dependabot::Clients::Azure.
           for_source(source: source, credentials: credentials)
+      end
+
+      def gitea_client
+        @gitea_client ||=
+          Dependabot::Clients::Gitea.for_source(source: source, credentials: credentials)
       end
 
       def bitbucket_client
